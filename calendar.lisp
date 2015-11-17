@@ -45,8 +45,7 @@
        finally (return (min 12 months-per-row)))))
 
 (defun sublists (list sublist-length &optional (pad nil padp))
-  (let* ((result (loop with list = (copy-list list)
-                    while list collect
+  (let* ((result (loop while list collect
                       (loop while list
                          repeat sublist-length
                          collect (pop list))))
