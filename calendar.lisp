@@ -3,11 +3,12 @@
   (:export :calendar))
 (in-package :calendar)
 
+;; Later this will use Julian if the year is <= 1750
+
 (defconstant +months+ '(january february march april may june july
                         august september october november december))
 
 (defun jan-1-day (year)
-  ;; Later this will use Julian if the year is <= 1750
   (mod (+ 1
           (* 5 (mod (1- year) 4))
           (* 4 (mod (1- year) 100))
@@ -70,7 +71,9 @@
 
 (defun print-month-names (month-names)
   ;; 20 = 7 days * 2 + 6 for 1 space between them
-  (format t "~{~20:@<~:(~a~)~>~^  ~}~%" (mapcar #'string month-names)))
+  (format t "~{~v:@<~:(~a~)~>~^  ~}~%"
+          (loop for s in (mapcar #'string month-names)
+             nconcing (list 20 s))))
 
 (defun print-row-header (month-names)
   (print-month-names month-names)
