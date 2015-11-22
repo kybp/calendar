@@ -7,20 +7,22 @@
                         august september october november december))
 
 (defun day-of-year (day month year calendar)
-  (let ((y (if (member month '(1 2)) (1- year) year))
-        (m (mod (- month 2) 12)))
-    (floor (ecase calendar
-             (:gregorian (mod (+ day
-                                 (- (* 2.6 m) 0.2)
-                                 (* 5 (mod y 4))
-                                 (* 4 (mod y 100))
-                                 (* 6 (mod y 400)))
-                              7))
-             (:julian    (mod (+ day
-                                 (- (* 2.6 m) 2.2)
-                                 (* 5 (mod y 4))
-                                 (* 3 (mod y 7)))
-                              7))))))
+  (let ((a (if (member month '(1 2)) (1- year) year))
+        (m (1+ (mod (- month 3) 12))))
+    (multiple-value-bind (c y) (floor a 100)
+      (floor (ecase calendar
+               (:gregorian (mod (+ day
+                                   (- (* 2.6 m) 0.2)
+                                   (* 5 (mod y 4))
+                                   (* 3 (mod y 7))
+                                   (* 5 (mod c 4)))
+                                7))
+               (:julian    (mod (+ day
+                                   (- (* 2.6 m) 2.2)
+                                   (* 5 (mod y 4))
+                                   (* 3 (mod y 7))
+                                   (* 6 (mod c 7)))
+                                7)))))))
 
 (defun jan-1-day (year calendar)
   (day-of-year 1 1 year calendar))
