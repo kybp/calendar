@@ -6,9 +6,19 @@
 (defconstant +months+ '(january february march april may june july
                         august september october november december))
 
+(defun month-name (index)
+  (if (symbolp index)
+      index
+      (nth (1- index) +months+)))
+
+(defun month-index (name)
+  (if (numberp name)
+      name
+      (1+ (position name +months+))))
+
 ;; yuck
 (defun day-of-week (day month year calendar)
-  (let* ((m (if (numberp month) month (1+ (position month +months+))))
+  (let* ((m (month-index month))
          (result (real-day-of-week day m year calendar)))
     (if (or (and (eq calendar :julian)
                  (or (and (= m 4) (zerop (mod     year  28)))
@@ -43,7 +53,7 @@
     (:julian (zerop (mod year 4)))))
 
 (defun days-in-month (month year calendar)
-  (case month
+  (case (month-name month)
     (january   31)
     (february  (if (leap-year-p calendar year) 29 28))
     (march     31)
@@ -112,10 +122,13 @@
                   collect (or (pop (nth i months))
                               (loop repeat 7 collect "  "))))))
 
+(defun get-month ()
+  (nth-value 4 (decode-universal-time (get-universal-time))))
+
 (defun get-year ()
   (nth-value 5 (decode-universal-time (get-universal-time))))
 
-(defun calendar (&key (year (get-year)) (screen-width 80))
+(defun print-year (year screen-width)
   (let* ((months-per-row (months-per-row screen-width))
          (calendar-width (+ (* months-per-row 20) (* (1- months-per-row) 2)))
          (month-names    (sublists +months+ months-per-row))
@@ -125,3 +138,18 @@
        and days in month-days do
          (print-row-header name-row)
          (print-month-days days))))
+
+(defun print-month (month year)
+  (let ((month-name (month-name month)))
+    (format t "~v:@<~:(~a~) ~a~>~%" 20 month-name year)
+    (print-weekdays 1)
+    (print-month-days (list (build-month month year)))))
+
+(defun calendar (&key (screen-width 80)
+                   (month (get-month) month-supplied-p)
+                   (year  (get-year)  year-supplied-p))
+  (if (and year-supplied-p (not month-supplied-p))
+      (print-year year screen-width)
+      (if (< screen-width 20)
+          (error "Screen is too narrow for a calendar.")
+          (print-month month year))))
