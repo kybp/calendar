@@ -6,14 +6,24 @@
 (defconstant +months+ '(january february march april may june july
                         august september october november december))
 
+(defun day-of-year (day month year calendar)
+  (let ((y (if (member month '(1 2)) (1- year) year))
+        (m (mod (- month 2) 12)))
+    (floor (ecase calendar
+             (:gregorian (mod (+ day
+                                 (- (* 2.6 m) 0.2)
+                                 (* 5 (mod y 4))
+                                 (* 4 (mod y 100))
+                                 (* 6 (mod y 400)))
+                              7))
+             (:julian    (mod (+ day
+                                 (- (* 2.6 m) 2.2)
+                                 (* 5 (mod y 4))
+                                 (* 3 (mod y 7)))
+                              7))))))
+
 (defun jan-1-day (year calendar)
-  (ecase calendar
-    (:gregorian (mod (+ 1
-                        (* 5 (mod (1- year) 4))
-                        (* 4 (mod (1- year) 100))
-                        (* 6 (mod (1- year) 400)))
-                     7))
-    (:julian 0)))
+  (day-of-year 1 1 year calendar))
 
 (defun leap-year-p (calendar year)
   (ecase calendar
@@ -61,7 +71,7 @@
     result))
 
 (defun build-year (year)
-  (loop with calendar = (if (<= year 1750) :julian :gregorian)
+  (loop with calendar = (if (< year 1752) :julian :gregorian)
      for month in +months+
      for days-in-month = (days-in-month month year calendar)
      and start = (jan-1-day year calendar) then (mod (+ start days-in-month) 7)
