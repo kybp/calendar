@@ -3,11 +3,11 @@
   (:export :calendar))
 (in-package :calendar)
 
-(defconstant +months+ '(january february march april may june july
-                        august september october november december))
+(defconstant +months+ '(:january :february :march :april :may :june :july
+                        :august :september :october :november :december))
 
 (defun month-name (index)
-  (if (symbolp index)
+  (if (keywordp index)
       index
       (nth (1- index) +months+)))
 
@@ -53,19 +53,19 @@
     (:julian (zerop (mod year 4)))))
 
 (defun days-in-month (month year calendar)
-  (case (month-name month)
-    (january   31)
-    (february  (if (leap-year-p calendar year) 29 28))
-    (march     31)
-    (april     30)
-    (may       31)
-    (june      30)
-    (july      31)
-    (august    31)
-    (september 30)
-    (october   31)
-    (november  30)
-    (december  31)))
+  (ecase (month-name month)
+    (:january   31)
+    (:february  (if (leap-year-p calendar year) 29 28))
+    (:march     31)
+    (:april     30)
+    (:may       31)
+    (:june      30)
+    (:july      31)
+    (:august    31)
+    (:september 30)
+    (:october   31)
+    (:november  30)
+    (:december  31)))
 
 (defun months-per-row (screen-width)
   ;; 2 columns for each week, with 1 space separating weekdays
