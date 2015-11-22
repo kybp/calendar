@@ -6,26 +6,34 @@
 (defconstant +months+ '(january february march april may june july
                         august september october november december))
 
-(defun day-of-year (day month year calendar)
-  (let ((a (if (member month '(1 2)) (1- year) year))
-        (m (1+ (mod (- month 3) 12))))
-    (multiple-value-bind (c y) (floor a 100)
-      (floor (ecase calendar
-               (:gregorian (mod (+ day
-                                   (- (* 2.6 m) 0.2)
-                                   (* 5 (mod y 4))
-                                   (* 3 (mod y 7))
-                                   (* 5 (mod c 4)))
-                                7))
-               (:julian    (mod (+ day
-                                   (- (* 2.6 m) 2.2)
-                                   (* 5 (mod y 4))
-                                   (* 3 (mod y 7))
-                                   (* 6 (mod c 7)))
-                                7)))))))
+;; yuck
+(defun day-of-week (day month year calendar)
+  (let* ((m (if (numberp month) month (1+ (position month +months+))))
+         (result (real-day-of-week day m year calendar)))
+    (if (or (and (eq calendar :julian)
+                 (or (and (= m 4) (zerop (mod     year  28)))
+                     (and (= m 2) (zerop (mod (1- year) 28)))))
+            (and (eq calendar :gregorian)
+                 (or (and (= m 9) (zerop (mod     year  400)))
+                     (and (= m 2) (zerop (mod (1- year) 400))))))
+        (mod (1+ result) 7)
+        result)))
 
-(defun jan-1-day (year calendar)
-  (day-of-year 1 1 year calendar))
+(defun real-day-of-week (day month year calendar)
+  (let ((y (if (member month '(1 2)) (1- year) year))
+        (m (1+ (mod (- month 3) 12))))
+    (floor (ecase calendar
+             (:gregorian (mod (+ day
+                                 (- (* 2.6 m) 0.2)
+                                 (* 5 (mod y 4))
+                                 (* 4 (mod y 100))
+                                 (* 6 (mod y 400)))
+                              7))
+             (:julian    (mod (+ day
+                                 (- (* 2.6 m) 2.2)
+                                 (* 5 (mod y 4))
+                                 (* 3 (mod y 7)))
+                              7))))))
 
 (defun leap-year-p (calendar year)
   (ecase calendar
@@ -49,7 +57,6 @@
     (november  30)
     (december  31)))
 
-;; this is ugly but it works and I'm tired
 (defun months-per-row (screen-width)
   ;; 2 columns for each week, with 1 space separating weekdays
   (let ((month-width (+ (* 2 7) 6))
@@ -72,16 +79,16 @@
              (loop repeat short collect pad)))
     result))
 
+(defun build-month (month year)
+  (let ((calendar (if (< year 1752) :julian :gregorian)))
+    (sublists
+     (nconc (loop repeat (day-of-week 1 month year calendar) collect "  ")
+            (loop for day from 1 to (days-in-month month year calendar)
+               collecting (format nil "~2d" day)))
+     7 "  ")))
+
 (defun build-year (year)
-  (loop with calendar = (if (< year 1752) :julian :gregorian)
-     for month in +months+
-     for days-in-month = (days-in-month month year calendar)
-     and start = (jan-1-day year calendar) then (mod (+ start days-in-month) 7)
-     collecting
-       (sublists (append (loop repeat start collect "  ")
-                         (loop for day from 1 to days-in-month
-                            collecting (format nil "~2d" day)))
-                 7 "  ")))
+  (loop for month in +months+ collecting (build-month month year)))
 
 (defun print-weekdays (n-times)
   (let ((weekdays "Su Mo Tu We Th Fr Sa"))
