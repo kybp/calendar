@@ -89,16 +89,16 @@
              (loop repeat short collect pad)))
     result))
 
-(defun build-month (month year)
-  (let ((calendar (if (< year 1752) :julian :gregorian)))
+(defun build-month (month year &optional calendar)
+  (let ((calendar (or calendar (if (< year 1752) :julian :gregorian))))
     (sublists
      (nconc (loop repeat (day-of-week 1 month year calendar) collect "  ")
             (loop for day from 1 to (days-in-month month year calendar)
                collecting (format nil "~2d" day)))
      7 "  ")))
 
-(defun build-year (year)
-  (loop for month in +months+ collecting (build-month month year)))
+(defun build-year (year &optional calendar)
+  (loop for month in +months+ collecting (build-month month year calendar)))
 
 (defun print-weekdays (n-times)
   (let ((weekdays "Su Mo Tu We Th Fr Sa"))
@@ -128,28 +128,29 @@
 (defun get-year ()
   (nth-value 5 (decode-universal-time (get-universal-time))))
 
-(defun print-year (year screen-width)
+(defun print-year (year calendar screen-width)
   (let* ((months-per-row (months-per-row screen-width))
          (calendar-width (+ (* months-per-row 20) (* (1- months-per-row) 2)))
          (month-names    (sublists +months+ months-per-row))
-         (month-days     (sublists (build-year year) months-per-row)))
+         (month-days     (sublists (build-year year calendar) months-per-row)))
     (format t "~v:@<~a~>~2%" calendar-width year)
     (loop for name-row in month-names
        and days in month-days do
          (print-row-header name-row)
          (print-month-days days))))
 
-(defun print-month (month year)
+(defun print-month (month year calendar)
   (let ((month-name (month-name month)))
     (format t "~v:@<~:(~a~) ~a~>~%" 20 month-name year)
     (print-weekdays 1)
-    (print-month-days (list (build-month month year)))))
+    (print-month-days (list (build-month month year calendar)))))
 
 (defun calendar (&key (screen-width 80)
                    (month (get-month) month-supplied-p)
-                   (year  (get-year)  year-supplied-p))
+                   (year  (get-year)  year-supplied-p)
+                   calendar)
   (if (and year-supplied-p (not month-supplied-p))
-      (print-year year screen-width)
+      (print-year year calendar screen-width)
       (if (< screen-width 20)
           (error "Screen is too narrow for a calendar.")
-          (print-month month year))))
+          (print-month month year calendar))))
