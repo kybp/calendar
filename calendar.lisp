@@ -16,34 +16,32 @@
       name
       (1+ (position name +months+))))
 
-;; yuck
 (defun day-of-week (day month year calendar)
-  (let* ((m (month-index month))
-         (result (real-day-of-week day m year calendar)))
-    (if (or (and (eq calendar :julian)
-                 (or (and (= m 4) (zerop (mod     year  28)))
-                     (and (= m 2) (zerop (mod (1- year) 28)))))
-            (and (eq calendar :gregorian)
-                 (or (and (= m 9) (zerop (mod     year  400)))
-                     (and (= m 2) (zerop (mod (1- year) 400))))))
-        (mod (1+ result) 7)
-        result)))
+  (let* ((mi (month-index month))
+         (y  (if (member mi '(1 2)) (1- year) year))
+         (m  (1+ (mod (- mi 3) 12))))
+    (ecase calendar
+      (:gregorian (gregorian-day-of-week day m y))
+      (:julian    (julian-day-of-week    day m y)))))
 
-(defun real-day-of-week (day month year calendar)
-  (let ((y (if (member month '(1 2)) (1- year) year))
-        (m (1+ (mod (- month 3) 12))))
-    (floor (ecase calendar
-             (:gregorian (mod (+ day
-                                 (- (* 2.6 m) 0.2)
-                                 (* 5 (mod y 4))
-                                 (* 4 (mod y 100))
-                                 (* 6 (mod y 400)))
-                              7))
-             (:julian    (mod (+ day
-                                 (- (* 2.6 m) 2.2)
-                                 (* 5 (mod y 4))
-                                 (* 3 (mod y 7)))
-                              7))))))
+(defun gregorian-day-of-week (d m y)
+  (let ((day (+ d (- (* 2.6 m) 0.2)
+                (* 5 (mod y 4))
+                (* 4 (mod y 100))
+                (* 6 (mod y 400)))))
+    (mod (if (and (zerop (mod y 400))
+                  (or (= m 7) (= m 12)))
+             (1+ day) day)
+         7)))
+
+(defun julian-day-of-week (d m y)
+  (let ((day (+ d (- (* 2.6 m) 2.2)
+                (* 5 (mod y 4))
+                (* 3 (mod y 7)))))
+    (mod (if (and (zerop (mod y 28))
+                  (or (= m 2) (= m 12)))
+             (1+ day) day)
+         7)))
 
 (defun leap-year-p (calendar year)
   (ecase calendar
